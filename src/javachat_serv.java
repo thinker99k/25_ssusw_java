@@ -13,6 +13,8 @@ public class javachat_serv {
         return port_scanner.nextInt();
     }
 
+    static ServerSocket listener;
+
     /**
      * 실행방법
      * 1. java javachat_clnt <port>
@@ -41,7 +43,6 @@ public class javachat_serv {
             }
         }
 
-        ServerSocket listener;
         try {
             listener = new ServerSocket(port);
         } catch (IOException e) {
@@ -99,7 +100,7 @@ public class javachat_serv {
             try {
                 client_name = in.readLine();
                 broadcast(client_name + "님이 채팅방에 들어오셨습니다");
-            } catch (IOException _) {
+            } catch (IOException e) {
                 ; // in.readline()에 대한 예외처리 안함
             }
 
@@ -117,7 +118,7 @@ public class javachat_serv {
             clientWriters.remove(out);
             try {
                 clnt_sock.close();
-            } catch (IOException _) {
+            } catch (IOException e) {
                 ; // 소켓 닫을때 에러처리 무시
             }
             System.out.println(

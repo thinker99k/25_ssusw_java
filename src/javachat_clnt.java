@@ -27,7 +27,7 @@ public class javachat_clnt {
         String host;
         int port;
         String name;
-        BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
+        BufferedReader con = new BufferedReader(new InputStreamReader(System.in));
 
         Socket serv_sock;
         BufferedReader in;
@@ -87,16 +87,16 @@ public class javachat_clnt {
         // 새로운 쓰레드 : 서버로부터 들어오는 내용 println 전담
         new Thread(() -> {
             try {
-                String line;
-                while ((line = in.readLine()) != null) {
-                    System.out.println(line);
+                String in_line;
+                while ((in_line = in.readLine()) != null) {
+                    System.out.println(in_line);
                 }
             } catch (IOException e) {
                 System.err.println("서버 " + host + ":" + port + "의 연결이 끊겼습니다");
             } finally {
                 try {
                     serv_sock.close();
-                } catch (IOException _) {
+                } catch (IOException e) {
                     ; // 소켓 닫을때 에러처리 무시
                 }
                 return;
@@ -104,11 +104,11 @@ public class javachat_clnt {
         }).start();
 
         // 메인 쓰레드 : 사용자의 입력을 받아 서버로 전달
-        String line;
+        String out_line;
         try {
-            while ((line = console.readLine()) != null)
-                out.println(line);
-        } catch (IOException _) {
+            while ((out_line = con.readLine()) != null)
+                out.println(out_line);
+        } catch (IOException e) {
             // console.readline() 에 대한 에러처리 안함
         }
     }
