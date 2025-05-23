@@ -80,6 +80,12 @@ public class javachat_serv {
             this.clnt_sock = socket;
         }
 
+        private void broadcast(String message) {
+            for (PrintWriter writer : clientWriters) {
+                writer.println(message);
+            }
+        }
+
         /**
          * 애초에 연결이 성립이 된 상태에서 시작된 쓰레드임
          */
@@ -96,10 +102,10 @@ public class javachat_serv {
                 return;
             }
 
-            /** 핸드쉐이크 */
+            /** 입장 메세지 */
             try {
                 client_name = in.readLine();
-                broadcast(client_name + "님이 채팅방에 들어오셨습니다");
+                broadcast("** " + client_name + "님이 채팅방에 들어오셨습니다 **");
             } catch (IOException e) {
                 ; // in.readline()에 대한 예외처리 안함
             }
@@ -121,14 +127,9 @@ public class javachat_serv {
             } catch (IOException e) {
                 ; // 소켓 닫을때 에러처리 무시
             }
-            System.out.println(
-                    "연결 종료 : " + clnt_sock.getRemoteSocketAddress());
-        }
 
-        private void broadcast(String message) {
-            for (PrintWriter writer : clientWriters) {
-                writer.println(message);
-            }
+            /** 퇴장 메세지 */
+            broadcast("** " + client_name + "님이 채팅방을 떠났습니다 **");
         }
     }
 }
