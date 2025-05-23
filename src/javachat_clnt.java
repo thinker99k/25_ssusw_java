@@ -102,6 +102,17 @@ public class javachat_clnt {
                 return;
             }
         }).start();
+        //heartbeat관련 쓰레드
+        new Thread(() -> {
+            try {
+                while (!serv_sock.isClosed()){
+                    out.println("STATUS:HEARTBEAT");
+                    Thread.sleep(900);
+                }
+            } catch (InterruptedException e){
+
+            }
+        }).start();
 
         // 메인 쓰레드 : 사용자의 입력을 받아 서버로 전달
         String out_line;

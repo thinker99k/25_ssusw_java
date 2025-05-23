@@ -74,6 +74,8 @@ public class javachat_serv {
         private Socket clnt_sock;
         private BufferedReader in;
         private PrintWriter out;
+        private static Map<String, Boolean> userStatus = new ConcurrentHashMap<>();
+        private long lastheartbeat;
 
         // ClientHandler 생성자
         ClientHandler(Socket socket) {
@@ -103,14 +105,39 @@ public class javachat_serv {
             } catch (IOException e) {
                 ; // in.readline()에 대한 예외처리 안함
             }
+            lastheartbeat = System.currentTimeMillis();
+            //this line needs to add all users in db
+            userStatus.put(client_name, true);
+            new Thread(()-> {
+                while (true){
+                    try {
+                        Thread.sleep(1000);
+                        //2초 경과 후 offline전환
+                        if (System.currentTimeMillis() - lastheartbeat > 2000) {
+                            userStatus.put(client_name, false);
+                            broadcast(client_name + "님이 오프라인으로 전환했습니다.");
+                            break;
+                        }
+                    }catch (InterruptedException e){
+                        userStatus.put(client_name, false);
+                        broadcast(client_name + "님이 오프라인으로 전환했습니다.");
+                        break;
+                    }
+                }
+            }).start();
 
             /** 여기서부터 클라이언트 간 실질적인 메시지 교환 */
 
             String line;
             try {
                 while ((line = in.readLine()) != null) {
-                    broadcast(client_name + " >> " + line);
-                }
+                    if (line.equals("STATUS:HEARTBEAT")){
+                        lastheartbeat = System.currentTimeMillis();
+                    }
+                    else{
+                        userStatus.forEach((key, value) ->broadcast(key + ":" + value));
+                        broadcast(client_name + " >> " + line);
+                    }
             } catch (Exception e) {
                 // in.readline() 에 대한 예외 처리 안함
             }
@@ -121,9 +148,10 @@ public class javachat_serv {
             } catch (IOException e) {
                 ; // 소켓 닫을때 에러처리 무시
             }
-            System.out.println(
-                    "연결 종료 : " + clnt_sock.getRemoteSocketAddress());
-        }
+            System.out.println("연결 종료 : " + clnt_sock.getRemoteSocketAddress());
+            userStatus.put(client_name, false);
+            System.out.println(client_name + "님이 오프라인으로 전환했습니다.");
+            }
 
         private void broadcast(String message) {
             for (PrintWriter writer : clientWriters) {
