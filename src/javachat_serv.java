@@ -22,34 +22,6 @@ public class javachat_serv {
      * 2. java javachat_serv
      */
 
-    private static void startStatusMonitor(){
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(1000);
-                    sendUserStatusToClients();
-                    for (var entry : UserStatus.entrySet()) {
-                        System.out.println(entry.getKey() + ":" + entry.getValue());
-                    }
-                    long now = System.currentTimeMillis();
-                    for (Map.Entry<String, Long> entry : LastHeartBeatMap.entrySet()) {
-                        String user = entry.getKey();
-                        long lastbeat = entry.getValue();
-                        if (now - lastbeat > 2000 && UserStatus.getOrDefault(user, true)) {
-                            UserStatus.put(user, false);
-                            System.out.println(user + ":오프라인 전환");
-                        } else if (UserStatus.getOrDefault(user, false)) {
-                            UserStatus.put(user,true);
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    System.err.println("감시 쓰레드 종료");
-                    break;
-                }
-            }
-        }).start();
-    }
-
     private static void sendUserStatusToClients() {
         for (Map.Entry<String, Boolean> entry : UserStatus.entrySet()) {
             String message = "STATUS:USERMAP:" + entry.getKey() + ":" + entry.getValue();
@@ -89,7 +61,7 @@ public class javachat_serv {
 
         System.out.println(port + "번 포트에서 서버 시작");
 
-        startStatusMonitor();
+        new Thread (new startStatusMonitor()).start();
         while (true) {
             Socket sock;
             sock = listener.accept();
@@ -175,6 +147,33 @@ public class javachat_serv {
         private void broadcast(String message) {
             for (PrintWriter writer : clientWriters) {
                 writer.println(message);
+            }
+        }
+    }
+    private static class startStatusMonitor implements Runnable{
+        public void run(){
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                    sendUserStatusToClients();
+                    for (var entry : UserStatus.entrySet()) {
+                        System.out.println(entry.getKey() + ":" + entry.getValue());
+                    }
+                    long now = System.currentTimeMillis();
+                    for (Map.Entry<String, Long> entry : LastHeartBeatMap.entrySet()) {
+                        String user = entry.getKey();
+                        long lastbeat = entry.getValue();
+                        if (now - lastbeat > 2000 && UserStatus.getOrDefault(user, true)) {
+                            UserStatus.put(user, false);
+                            System.out.println(user + ":오프라인 전환");
+                        } else if (UserStatus.getOrDefault(user, false)) {
+                            UserStatus.put(user,true);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("감시 쓰레드 종료");
+                    break;
+                }
             }
         }
     }
