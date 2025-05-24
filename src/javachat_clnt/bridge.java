@@ -29,4 +29,9 @@ class bridge implements lsnr {
     public void onIncoming(String line) {
         g.appendChat(line);
     }
+
+    @Override
+    public void onStatusUpdate(String name, Boolean status){
+        g.updateStatus(name, status);
+    }
 }

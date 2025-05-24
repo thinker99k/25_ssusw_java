@@ -45,8 +45,18 @@ class net {
 
         /** 읽기 쓰레드 시작 */
         new Thread(this::recv).start();
+        new Thread(this::heartbeat).start();
     }
+    public void heartbeat(){
+        try {
+            while (!sock.isClosed()){
+                out.println("STATUS:HEARTBEAT"); //heartbeat to server
+                Thread.sleep(900);
+            }
+        } catch (InterruptedException e){
 
+        }
+    }
     public void send(String msg) {
         if (out != null) {
             out.println(msg);
@@ -60,7 +70,15 @@ class net {
             String line;
             while ((line = in.readLine()) != null) {
                 final String msg = line;
-                SwingUtilities.invokeLater(() -> ui.onIncoming(msg));
+                if (line.startsWith("STATUS:USERMAP:")){
+                    String[] parts = line.split(":");
+                    String username = parts[2];
+                    boolean isonline = Boolean.parseBoolean(parts[3]);
+                    SwingUtilities.invokeLater(() -> ui.onStatusUpdate(username, isonline));
+                }
+                else{
+                    SwingUtilities.invokeLater(() -> ui.onIncoming(msg));
+                }
             }
         } catch (IOException e){
             ; // 무시

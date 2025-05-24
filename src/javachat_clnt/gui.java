@@ -94,4 +94,27 @@ class gui extends JFrame { //클래스 자체가 하나의 윈도우가 되도�
         chatArea.append(message + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
+
+    public void updateStatus(String name, Boolean status) {
+        String updatedStatus = name + " - " + (status ? "Online" : "Offline");
+        boolean found = false;
+
+        for (int i = 0; i < listModel.size(); i++) {
+            String userEntry = listModel.getElementAt(i).trim();
+            String[] parts = userEntry.split(" - ", 2);
+
+            if (parts.length > 0 && parts[0].trim().equals(name)) {
+                if (!userEntry.equals(updatedStatus)) {
+                    listModel.set(i, updatedStatus);
+                    System.out.println("업데이트됨: " + updatedStatus);
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            listModel.addElement(updatedStatus);
+            System.out.println("추가됨: " + updatedStatus);
+        }
+    }
 }

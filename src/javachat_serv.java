@@ -14,13 +14,50 @@ public class javachat_serv {
     }
 
     static ServerSocket listener;
-
+    private static Map<String, Boolean> UserStatus = new ConcurrentHashMap<>();
+    private static Map<String, Long> LastHeartBeatMap = new ConcurrentHashMap<>();
     /**
      * 실행방법
      * 1. java javachat_clnt <port>
      * 2. java javachat_serv
      */
 
+    private static void startStatusMonitor(){
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                    sendUserStatusToClients();
+                    for (var entry : UserStatus.entrySet()) {
+                        System.out.println(entry.getKey() + ":" + entry.getValue());
+                    }
+                    long now = System.currentTimeMillis();
+                    for (Map.Entry<String, Long> entry : LastHeartBeatMap.entrySet()) {
+                        String user = entry.getKey();
+                        long lastbeat = entry.getValue();
+                        if (now - lastbeat > 2000 && UserStatus.getOrDefault(user, true)) {
+                            UserStatus.put(user, false);
+                            System.out.println(user + ":오프라인 전환");
+                        } else if (UserStatus.getOrDefault(user, false)) {
+                            UserStatus.put(user,true);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("감시 쓰레드 종료");
+                    break;
+                }
+            }
+        }).start();
+    }
+
+    private static void sendUserStatusToClients() {
+        for (Map.Entry<String, Boolean> entry : UserStatus.entrySet()) {
+            String message = "STATUS:USERMAP:" + entry.getKey() + ":" + entry.getValue();
+            for (PrintWriter writer : clientWriters) {
+                writer.println(message);
+            }
+        }
+    }
     public static void main(String[] args) throws Exception {
         System.out.println("=== JAVACHAT SERVER ===");
 
@@ -52,6 +89,7 @@ public class javachat_serv {
 
         System.out.println(port + "번 포트에서 서버 시작");
 
+        startStatusMonitor();
         while (true) {
             Socket sock;
             sock = listener.accept();
@@ -71,8 +109,6 @@ public class javachat_serv {
     private static class ClientHandler implements Runnable {
         private String client_name;
 
-        private static Map<String, Boolean> UserStatus = new ConcurrentHashMap<>();
-        private long   lastheartbeat;
         private Socket clnt_sock;
         private BufferedReader in;
         private PrintWriter out;
@@ -105,26 +141,10 @@ public class javachat_serv {
             } catch (IOException e) {
                 ; // in.readline()에 대한 예외처리 안함
             }
-            lastheartbeat = System.currentTimeMillis();
-            //this line needs to add all users in db
+
+            LastHeartBeatMap.put(client_name, System.currentTimeMillis());
             UserStatus.put(client_name, true);
-            new Thread(()-> {
-                while (true){
-                    try {
-                        Thread.sleep(1000);
-                        //2초 경과 후 offline전환
-                        if (System.currentTimeMillis() - lastheartbeat > 2000) {
-                            UserStatus.put(client_name, false);
-                            broadcast(client_name + "님이 오프라인으로 전환했습니다.");
-                            break;
-                        }
-                    }catch (InterruptedException e){
-                        UserStatus.put(client_name, false);
-                        broadcast(client_name + "님이 오프라인으로 전환했습니다.");
-                        break;
-                    }
-                }
-            }).start();
+            sendUserStatusToClients();
 
             /** 여기서부터 클라이언트 간 실질적인 메시지 교환 */
 
@@ -132,10 +152,9 @@ public class javachat_serv {
             try {
                 while ((line = in.readLine()) != null) {
                     if (line.equals("STATUS:HEARTBEAT")){
-                        lastheartbeat = System.currentTimeMillis();
+                        LastHeartBeatMap.put(client_name, System.currentTimeMillis());
                     }
                     else{
-                        UserStatus.forEach((key, value) ->broadcast(key + ":" + value));
                         broadcast(client_name + " >> " + line);
                     }
             } }catch (Exception e) {
