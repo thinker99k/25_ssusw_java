@@ -3,8 +3,7 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class
-javachat_serv {
+public class javachat_serv {
     private static final Set<PrintWriter> clientWriters =
             ConcurrentHashMap.newKeySet();
 
