@@ -4,9 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-class gui extends JFrame { //클래스 자체가 하나의 윈도우가 되도록 JFrame 상속
-
-    private static final int SIDE_WIDTH = 100; // 사용자 목록과 placeholder 폭 고정
+class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되도록 JFrame 상속
+    private static final int SIDE_WIDTH = 200; // 사용자 목록과 placeholder 폭 고정
 
     private JTextArea chatArea;//채팅창 영역
     private JTextField inputField;// 메세지 입력창 영역
@@ -15,20 +14,20 @@ class gui extends JFrame { //클래스 자체가 하나의 윈도우가 되도�
     private DefaultListModel<String> listModel;//userlist 의 데이터 모델, 사용자에 변화가 있을 시 갱신된다.
     private JPanel placeholderPanel; // 우측 하단 빈공간 영역
 
-    gui() {
+    gui_chat() {
+        setTitle("JAVACHAT CLIENT v" + clnt_main.version);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // x 버튼 누르면 프로세스 종료
         setSize(1000, 800); // 윈도우 창 사이즈 고정
         setResizable(false);                // 사이즈를 바꿀 수 없도록 설정
         setLocationRelativeTo(null);        // 화면 정중앙에 프레임을 띄움
-        initComponents();                   //내부 컴포넌트 생성 및 배치하는 메서드 호출
     }
 
-    private void initComponents() {
+    public void initComponents() {
 
         // 1) 전송 버튼 생성 및 크기 계산
         sendButton = new JButton("전송");
         Dimension btnDim = sendButton.getPreferredSize();//버튼의 기본 크기를 가져옴
-        sendButton.setPreferredSize(new Dimension(SIDE_WIDTH, btnDim.height)); // 폭 고정
+        sendButton.setPreferredSize(new Dimension(100, btnDim.height)); // 폭 고정
 
         // 2) 메시지 입력창 생성 및 버튼과 동일한 높이로 고정
         inputField = new JTextField();
@@ -93,5 +92,163 @@ class gui extends JFrame { //클래스 자체가 하나의 윈도우가 되도�
     public void appendChat(String message) {
         chatArea.append(message + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
+    }
+}
+
+class gui_login extends JDialog {
+    private final JTextField    idField   = new JTextField();
+    private final JPasswordField pwField   = new JPasswordField();
+    private boolean              succeeded;
+    private String               username;
+
+    public gui_login(Frame owner) {
+        super(owner, "Login", true);
+        setResizable(false);
+
+        // 좌측 배너 (텍스트가 ID/PW 입력창 높이에 맞춰 자동 정렬 + 하단 그림)
+        BannerPanel banner = new BannerPanel(idField, pwField);
+
+        // 우측 폼 + 버전 표시
+        JPanel formAndVersion = new JPanel(new BorderLayout());
+        formAndVersion.add(createFormPanel(), BorderLayout.CENTER);
+
+        JLabel ver = new JLabel("v" + clnt_main.version);
+        ver.setFont(new Font("MS Gothic", Font.PLAIN, 12));
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        bottom.add(ver);
+        formAndVersion.add(bottom, BorderLayout.SOUTH);
+
+        // 좌·우 분할
+        JSplitPane split = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                banner,
+                formAndVersion
+        );
+        split.setDividerSize(0);
+        split.setEnabled(false);
+        split.setDividerLocation(250);
+        getContentPane().add(split);
+
+        pack();
+        setLocationRelativeTo(owner);
+    }
+
+    private JPanel createFormPanel() {
+        JPanel p = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx  = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // 1) ID 레이블 (아래 여백 2px)
+        gbc.gridy  = 0;
+        gbc.insets = new Insets(100, 15, 2, 15);
+        p.add(new JLabel("ID"), gbc);
+
+        // 2) ID 입력창 (위 여백 2px)
+        gbc.gridy  = 1;
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(2, 15, 8, 15);
+        idField.setPreferredSize(new Dimension(200, 25));
+        p.add(idField, gbc);
+
+        // 3) PW 레이블
+        gbc.gridy  = 2;
+        gbc.fill   = GridBagConstraints.NONE;
+        gbc.insets = new Insets(8, 15, 2, 15);
+        p.add(new JLabel("PW"), gbc);
+
+        // 4) PW 입력창
+        gbc.gridy  = 3;
+        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(2, 15, 8, 15);
+        pwField.setPreferredSize(new Dimension(200, 25));
+        p.add(pwField, gbc);
+
+        // 5) Login 버튼 (폭 100px, 우측 정렬)
+        gbc.gridy   = 4;
+        gbc.fill    = GridBagConstraints.NONE;
+        gbc.anchor  = GridBagConstraints.LINE_END;
+        gbc.insets  = new Insets(8, 15, 8, 15);
+        JButton btn = new JButton("Login");
+        btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
+        btn.addActionListener(e -> tryLogin());
+        getRootPane().setDefaultButton(btn);
+        p.add(btn, gbc);
+
+        // 6) 아래 빈 공간으로 위쪽에 몰기
+        gbc.gridy   = 5;
+        gbc.weighty = 1.0;
+        gbc.fill    = GridBagConstraints.VERTICAL;
+        p.add(Box.createVerticalGlue(), gbc);
+
+        return p;
+    }
+
+    private void tryLogin() {
+        String id = idField.getText().trim();
+        String pw = new String(pwField.getPassword());
+        if (!id.isEmpty() && !pw.isEmpty()) {
+            succeeded = true;
+            username  = id;
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "ID 또는 PW가 올바르지 않습니다.",
+                    "로그인 오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            pwField.setText("");
+        }
+    }
+
+    public boolean isSucceeded() { return succeeded; }
+    public String  getUsername()  { return username;  }
+
+    /**
+     * 왼쪽 배너: idField/pwField 위치에 맞춰 JAVACHAT/CLIENT 그리기
+     */
+    private static class BannerPanel extends JPanel {
+        private final JTextField    idField;
+        private final JPasswordField pwField;
+        private final Font           font1      = new Font(Font.SANS_SERIF, Font.BOLD, 40);
+        private final Font           font2      = new Font(Font.SANS_SERIF, Font.PLAIN, 20);
+
+        BannerPanel(JTextField idField, JPasswordField pwField) {
+            this.idField = idField;
+            this.pwField = pwField;
+            setBackground(new Color(0, 95, 219));
+            setPreferredSize(new Dimension(250, 400));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setColor(Color.WHITE);
+            FontMetrics fm = g2.getFontMetrics();
+
+            // JAVACHAT
+            g2.setFont(font1);
+            String s1 = "JAVACHAT";
+            int w1 = fm.stringWidth(s1);
+            Point pId = SwingUtilities.convertPoint(
+                    idField.getParent(), idField.getX(), idField.getY(), this
+            );
+            int y1 = pId.y + idField.getHeight()/2 + fm.getAscent()/2;
+            int x1 = getWidth() - 160 - w1;
+            g2.drawString(s1, x1, y1);
+
+            // CLIENT
+            g2.setFont(font2);
+            String s2 = "CLIENT";
+            int w2 = fm.stringWidth(s2);
+            Point pPw = SwingUtilities.convertPoint(
+                    pwField.getParent(), pwField.getX(), pwField.getY(), this
+            );
+            int y2 = pPw.y + pwField.getHeight()/2 + fm.getAscent()/2;
+            int x2 = getWidth() - 50 - w2;
+            g2.drawString(s2, x2, y2);
+        }
     }
 }
