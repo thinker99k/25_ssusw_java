@@ -62,7 +62,7 @@ public class serv_main {
 
         /* // 인증서버 테스트용
         System.out.println("khlee / 1234 (t) → " + auth_serv.authenticate("khlee","1234"));
-        System.out.println("alice / 1234 (f) → " + auth_serv.authenticate("alice","1234"));
+        System.out.println("trudy / 1234 (f) → " + auth_serv.authenticate("alice","1234"));
         */
 
         try {
