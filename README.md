@@ -28,8 +28,8 @@
 
 ### 1 : heartbeat
 
-(clnt->serv) ```1 (boolean)\n```\
+(clnt->serv) ```1 true\n```\
 -> 어떤 클라이언트의 heartbeat
 
-(serv->clnt) ```1 { (string) (string) }\n```\
--> 다른 클라이언트들의 heartbeat 
+(serv->clnt) ```1 (name) (boolean) }\n```\
+-> 다른 클라이언트(name)의 online status
