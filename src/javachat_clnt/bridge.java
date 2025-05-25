@@ -36,6 +36,15 @@ class bridge{
     }
 
     public void onIncoming(String line) {
-        c.appendChat(line);
+        String[] tokens = line.split(" ");
+        switch (tokens[0]){
+            case "1":// heartbeat 응답
+                String name = tokens[1];
+                String status = tokens[2];
+                //TODO 토큰에 맞춰 유저 상태 리스트 업데이트
+                break;
+            default:
+                c.appendChat(line);
+        }
     }
 }

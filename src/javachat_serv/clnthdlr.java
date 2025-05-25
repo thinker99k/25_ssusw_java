@@ -14,7 +14,7 @@ class ClientHandler implements Runnable {
     private Socket clnt_sock;
     private BufferedReader in;
     private PrintWriter out;
-
+    private long heartbeat;
     private Boolean online; // 추후 사용
 
     // ClientHandler 생성자
@@ -30,6 +30,31 @@ class ClientHandler implements Runnable {
         } catch (IOException e) {
             ; // 예외 무시
         }
+    }
+
+    private Runnable heartbeat_monitor(){
+        return () -> {
+            try {
+                serv_main.broadcast("1 " + client_name + " " + online);
+                while (!Thread.currentThread().isInterrupted()) {
+                    long now = System.currentTimeMillis();
+                    if (now - heartbeat > 2000) {
+                        if (online = true){
+                            online = false;
+                            serv_main.broadcast("1 " + client_name + " " + online);
+                        }
+                    } else {
+                        if (online = false) {
+                            online = true;
+                            serv_main.broadcast("1 " + client_name + " " + online);
+                        }
+                    }
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                // 감시 쓰레드 종료
+            }
+        };
     }
 
     private boolean init() {
@@ -105,7 +130,10 @@ class ClientHandler implements Runnable {
         // 입장 메세지
         serv_main.broadcast(
                 "** " + client_name + "님이 채팅방에 들어오셨습니다 **");
-
+        heartbeat = System.currentTimeMillis();
+        online = true;
+        Thread monitor= new Thread(heartbeat_monitor());
+        monitor.start();
         String line;
         try {
             while ((line = in.readLine()) != null) { // \n전까지 모든 것을 읽음
@@ -115,7 +143,7 @@ class ClientHandler implements Runnable {
                 if (Integer.parseInt(st.nextToken()) == 0) { // 일반 메세지
                     serv_main.broadcast(client_name + " >> " + st.nextToken());
                 } else { // heartbeat
-                    // TODO : 구현!!
+                    heartbeat = System.currentTimeMillis();
                 }
 
                 st = null; // 빠른 가비지 콜렉션을 위해
