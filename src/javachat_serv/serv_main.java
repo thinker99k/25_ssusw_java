@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 public class serv_main {
     static ServerSocket listener;
     static AuthServer auth_serv;
+    static final String version = "1.0.4";
 
     public static final Set<PrintWriter> clientWriters =
             ConcurrentHashMap.newKeySet();
@@ -24,7 +25,6 @@ public class serv_main {
         return port_scanner.nextInt();
     }
 
-
     /**
      * 실행방법
      * 1. java javachat_clnt <port>
@@ -32,7 +32,7 @@ public class serv_main {
      */
 
     public static void main(String[] args) throws Exception {
-        System.out.println("=== JAVACHAT SERVER ===");
+        System.out.println("=== JAVACHAT SERVER v" + version + " ===");
 
         int port;
 

@@ -9,28 +9,34 @@ class net {
 
     private final String host;
     private final int port;
-    private final String name;
-    private final String pass;
 
     private Socket sock;
     private PrintWriter out;
     private BufferedReader in;
 
-    net(String host, int port, String name, String pass, bridge b) {
+    private boolean DEBUG = true;
+
+    net(String host, int port, bridge b) {
         this.host = host;
         this.port = port;
-        this.name = name;
-        this.pass = pass;
         this.b = b;
     }
 
-    private void clean() {
-        try {
-            in.close();
+    public void clean() {
+        if (in != null) {
+            try {
+                in.close();
+            } catch (IOException ignored) {
+            }
+        }
+        if (out != null) {
             out.close();
-            sock.close();
-        } catch (IOException e) {
-            ; // 예외 무시
+        }
+        if (sock != null && !sock.isClosed()) {
+            try {
+                sock.close();
+            } catch (IOException ignored) {
+            }
         }
     }
 
@@ -65,10 +71,7 @@ class net {
     private static final int WRONG_NO = 200;
     private static final int TOO_MANY = 300;
 
-    public int login() {
-        // TODO : gui 구현!!!
-        // 일단 cli상에서는 작동되게 해놨음
-
+    public int login(String name, String pass) {
         out.println(name + " " + pass);
 
         // in은 별도의 Thread이기에, 패킷 오고가는 1초동안 sleep
@@ -91,46 +94,47 @@ class net {
         return ret;
     }
 
-    public void exec() {
-        int response;
+    public void send_msg(String msg, boolean heartbeat) {
+        if (out != null) {
+            if (DEBUG) {
+                System.out.println("<- " + msg);
+            }
 
-        while (true) {
-            response = login();
-
-            if (response == TOO_MANY) {
-                System.err.println("로그인 불가능, 프로그램을 다시 시작해주세요!");
-                clean();
-                System.exit(0);
+            if (heartbeat) {
+                out.println("1 " + msg);
             } else {
-                if (response == LOGIN_OK) {
-                    break;
-                } else if (response == WRONG_NO){
-                    // 경고창 띄우기
-                    System.err.println("인증 정보가 틀립니다!");
-                }
-                else {
-                    ;
-                }
+                out.println("0 " + msg);
             }
         }
-
-        // 메세지 읽기 쓰레드 시작
-        new Thread(this::recv).start(); // 부득이하게 이름이 겹쳐서 네임스페이스 지정..
     }
 
-    public void send(String msg) {
-        if (out != null) {
-            out.println(msg);
-        }
-    }
-
-    public void recv() {
+    public void recv_msg() {
         try {
             String line;
+
             while ((line = in.readLine()) != null) {
+                if (DEBUG) {
+                    System.out.println("-> " + line);
+                }
+
                 final String msg = line;
                 SwingUtilities.invokeLater(() -> b.onIncoming(msg));
             }
+
+            // 서버와의 연결이 의도치 않게 끊기면
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "서버 연결이 종료되었습니다.",
+                        "연결 끊김",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                SwingUtilities.invokeLater(() -> b.c.setServerStatus(false));
+
+                // 이전 채팅 기록 저장은 하게 해줘야 하지 않을까?? 바로 나가면 안됨
+            });
+
+            clean();
         } catch (IOException e) {
             ; // 무시
         }

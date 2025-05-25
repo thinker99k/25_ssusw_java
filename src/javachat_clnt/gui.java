@@ -13,6 +13,9 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
     private JList<String> userList; //사용자 목록 나열 리스트
     private DefaultListModel<String> listModel;//userlist 의 데이터 모델, 사용자에 변화가 있을 시 갱신된다.
     private JPanel placeholderPanel; // 우측 하단 빈공간 영역
+    private JButton clearButton;
+    private JLabel serverStatusLabel;
+
 
     gui_chat() {
         setTitle("JAVACHAT CLIENT v" + clnt_main.version);
@@ -23,7 +26,6 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
     }
 
     public void initComponents() {
-
         // 1) 전송 버튼 생성 및 크기 계산
         sendButton = new JButton("전송");
         Dimension btnDim = sendButton.getPreferredSize();//버튼의 기본 크기를 가져옴
@@ -58,6 +60,18 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
         // 7) placeholder 패널 생성 (추가 기능을 위한 빈 공간)
         placeholderPanel = new JPanel();
         placeholderPanel.setPreferredSize(new Dimension(SIDE_WIDTH, 150)); // 높이 조정 가능
+
+        // 7a) clear 기능
+        clearButton = new JButton("Clear Chat");
+        clearButton.addActionListener(e -> {
+            chatArea.setText("");          // wipe the chat area
+        });
+        placeholderPanel.add(clearButton, BorderLayout.SOUTH);
+
+        // 7b) 서버상태
+        serverStatusLabel = new JLabel();
+        serverStatusLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        placeholderPanel.add(serverStatusLabel, BorderLayout.SOUTH);
 
         // 8) 오른쪽 패널 구성: 사용자 목록 위, placeholder 아래
         JPanel eastPanel = new JPanel(new BorderLayout());
@@ -94,7 +108,7 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
-    public void updateStatus(String name, Boolean status) {
+    public void setUserStatus(String name, Boolean status) {
         String updatedStatus = name + " - " + (status ? "Online" : "Offline");
         boolean found = false;
 
@@ -116,17 +130,33 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
             System.out.println("추가됨: " + updatedStatus);
         }
     }
+
+    public void setServerStatus(boolean online) {
+        if (online) {
+            serverStatusLabel.setText("Server : ONLINE");
+            serverStatusLabel.setForeground(Color.BLUE);  // dark green
+        } else {
+            serverStatusLabel.setText("Server : OFFLINE");
+            serverStatusLabel.setForeground(Color.RED);
+        }
+    }
 }
 
 class gui_login extends JDialog {
-    private final JTextField    idField   = new JTextField();
-    private final JPasswordField pwField   = new JPasswordField();
-    private boolean              succeeded;
-    private String               username;
+    private final JTextField idField = new JTextField();
+    private final JPasswordField pwField = new JPasswordField();
 
     public gui_login(Frame owner) {
         super(owner, "Login", true);
         setResizable(false);
+
+        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {//x 누르면 오류 메세지 없이 바로 종료
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
 
         // 좌측 배너 (텍스트가 ID/PW 입력창 높이에 맞춰 자동 정렬 + 하단 그림)
         BannerPanel banner = new BannerPanel(idField, pwField);
@@ -136,7 +166,7 @@ class gui_login extends JDialog {
         formAndVersion.add(createFormPanel(), BorderLayout.CENTER);
 
         JLabel ver = new JLabel("v" + clnt_main.version);
-        ver.setFont(new Font("MS Gothic", Font.PLAIN, 12));
+        ver.setFont(new Font("SANS_SERIF", Font.PLAIN, 12));
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottom.add(ver);
         formAndVersion.add(bottom, BorderLayout.SOUTH);
@@ -159,60 +189,58 @@ class gui_login extends JDialog {
     private JPanel createFormPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx  = 0;
+        gbc.gridx = 0;
         gbc.anchor = GridBagConstraints.WEST;
 
         // 1) ID 레이블 (아래 여백 2px)
-        gbc.gridy  = 0;
+        gbc.gridy = 0;
         gbc.insets = new Insets(100, 15, 2, 15);
         p.add(new JLabel("ID"), gbc);
 
         // 2) ID 입력창 (위 여백 2px)
-        gbc.gridy  = 1;
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 15, 8, 15);
         idField.setPreferredSize(new Dimension(200, 25));
         p.add(idField, gbc);
 
         // 3) PW 레이블
-        gbc.gridy  = 2;
-        gbc.fill   = GridBagConstraints.NONE;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(8, 15, 2, 15);
         p.add(new JLabel("PW"), gbc);
 
         // 4) PW 입력창
-        gbc.gridy  = 3;
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.gridy = 3;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 15, 8, 15);
         pwField.setPreferredSize(new Dimension(200, 25));
         p.add(pwField, gbc);
 
         // 5) Login 버튼 (폭 100px, 우측 정렬)
-        gbc.gridy   = 4;
-        gbc.fill    = GridBagConstraints.NONE;
-        gbc.anchor  = GridBagConstraints.LINE_END;
-        gbc.insets  = new Insets(8, 15, 8, 15);
+        gbc.gridy = 4;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(8, 15, 8, 15);
         JButton btn = new JButton("Login");
         btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
-        btn.addActionListener(e -> tryLogin());
+        btn.addActionListener(e -> verifyInput());
         getRootPane().setDefaultButton(btn);
         p.add(btn, gbc);
 
         // 6) 아래 빈 공간으로 위쪽에 몰기
-        gbc.gridy   = 5;
+        gbc.gridy = 5;
         gbc.weighty = 1.0;
-        gbc.fill    = GridBagConstraints.VERTICAL;
+        gbc.fill = GridBagConstraints.VERTICAL;
         p.add(Box.createVerticalGlue(), gbc);
 
         return p;
     }
 
-    private void tryLogin() {
+    private void verifyInput() {
         String id = idField.getText().trim();
         String pw = new String(pwField.getPassword());
         if (!id.isEmpty() && !pw.isEmpty()) {
-            succeeded = true;
-            username  = id;
             dispose();
         } else {
             JOptionPane.showMessageDialog(
@@ -225,17 +253,22 @@ class gui_login extends JDialog {
         }
     }
 
-    public boolean isSucceeded() { return succeeded; }
-    public String  getUsername()  { return username;  }
+    public String getUsername() {
+        return idField.getText();
+    }
+
+    public String getPassword() {
+        return new String(pwField.getPassword());
+    }
 
     /**
      * 왼쪽 배너: idField/pwField 위치에 맞춰 JAVACHAT/CLIENT 그리기
      */
     private static class BannerPanel extends JPanel {
-        private final JTextField    idField;
+        private final JTextField idField;
         private final JPasswordField pwField;
-        private final Font           font1      = new Font(Font.SANS_SERIF, Font.BOLD, 40);
-        private final Font           font2      = new Font(Font.SANS_SERIF, Font.PLAIN, 20);
+        private final Font font1 = new Font(Font.SANS_SERIF, Font.BOLD, 40);
+        private final Font font2 = new Font(Font.SANS_SERIF, Font.PLAIN, 20);
 
         BannerPanel(JTextField idField, JPasswordField pwField) {
             this.idField = idField;
@@ -258,7 +291,7 @@ class gui_login extends JDialog {
             Point pId = SwingUtilities.convertPoint(
                     idField.getParent(), idField.getX(), idField.getY(), this
             );
-            int y1 = pId.y + idField.getHeight()/2 + fm.getAscent()/2;
+            int y1 = pId.y + idField.getHeight() / 2 + fm.getAscent() / 2;
             int x1 = getWidth() - 160 - w1;
             g2.drawString(s1, x1, y1);
 
@@ -269,7 +302,7 @@ class gui_login extends JDialog {
             Point pPw = SwingUtilities.convertPoint(
                     pwField.getParent(), pwField.getX(), pwField.getY(), this
             );
-            int y2 = pPw.y + pwField.getHeight()/2 + fm.getAscent()/2;
+            int y2 = pPw.y + pwField.getHeight() / 2 + fm.getAscent() / 2;
             int x2 = getWidth() - 50 - w2;
             g2.drawString(s2, x2, y2);
         }

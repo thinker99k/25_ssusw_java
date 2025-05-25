@@ -1,59 +1,101 @@
 package javachat_clnt;
 
-class bridge{
-    public final gui_chat c;
-    public final gui_login l;
+import javax.swing.*;
+
+class bridge {
+    public gui_chat c;
+    public gui_login l;
     public final net n;
     public final heartbeat h;
 
-    bridge(String host, int port, String name, String pass) {
+    public String name;
+    public String pass;
+
+    bridge(String host, int port) {
         c = new gui_chat();
         l = new gui_login(c);
-        n = new net(host, port, name, pass, this);
+        n = new net(host, port, this);
         h = new heartbeat();
     }
 
-    public void exec(){
+    public void exec() {
         // 소켓 통신 establish 실패
-        if(!n.init()){
+        if (!n.init()) {
             System.exit(1);
         } /** UI 테스트시 주석처리 하고 실행 */
 
-        n.init(); // server에서 accept
-        n.exec(); // 이 이후로 메세지 전달
+        // 로그인
+        tryLogin(); // 성공하면 아래로 진행, 실패하면 exit(0);
 
+        // 메인 창 시작
         c.initComponents();
+        c.setServerStatus(true);
+        c.setVisible(true);
 
+        // 메세지 센더 시작
         c.addSendListener(e -> {
             String txt = c.getInputText().trim();
             if (!txt.isEmpty()) {
-                n.send("0 " + txt);
+                n.send_msg(txt, false);
                 c.clearInput();
             }
         });
 
-        c.setVisible(true);
+        // 메세지 리시버 시작
+        Thread t_recv = new Thread(n::recv_msg);
+        t_recv.start();
 
-        Thread hb_thread = new Thread(h);
-        hb_thread.start();
+        // 하트비트 시작
+        Thread heart = new Thread(h);
+        heart.start();
+    }
 
-        //l.setVisible(true);
+    public void tryLogin() {
+        // n.login 반환값에 따라 작동
+        int code;
+
+
+        while (true) {
+            l.setVisible(true); // 로그인 창 보이게
+
+            name = l.getUsername();
+            pass = l.getPassword();
+
+            code = n.login(name, pass);
+
+            if (code == 100) {
+                break;
+            } else if (code == 200) {
+                JOptionPane.showMessageDialog(
+                        null, "ID 또는 PW가 틀립니다.", "로그인 오류",
+                        JOptionPane.WARNING_MESSAGE);
+                // 루프 반복 → 다시 로그인
+            } else { // 서버에서 300코드 보냄
+                JOptionPane.showMessageDialog(
+                        null, "로그인 시도 횟수 초과", "로그인 오류",
+                        JOptionPane.ERROR_MESSAGE);
+                n.clean();
+                System.exit(0);
+            }
+        }
     }
 
     public void onIncoming(String line) {
         String[] tokens = line.split(" ");
-        switch (tokens[0]){
-            case "1":// heartbeat 응답
+        switch (tokens[0]) {
+            case "1": {// heartbeat 응답
                 String name = tokens[1];
 
                 Boolean status = Boolean.valueOf(tokens[2]);
-                c.updateStatus(name, status);
+                c.setUserStatus(name, status);
 
-                //TODO 토큰에 맞춰 유저 상태 리스트 업데이트
+                //TODO 토큰에 맞춰 gui eastPanel 업데이트
                 /** DEBUG */
                 System.out.println(name + " : " + status);
 
                 break;
+            }
+
             default:
                 // nickname >> 으로 시작하는 경우
                 c.appendChat(line);
