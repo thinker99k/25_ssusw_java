@@ -45,10 +45,14 @@ class bridge{
         switch (tokens[0]){
             case "1":// heartbeat 응답
                 String name = tokens[1];
-                String status = tokens[2];
+
+                Boolean status = Boolean.valueOf(tokens[2]);
+                c.updateStatus(name, status);
+
                 //TODO 토큰에 맞춰 유저 상태 리스트 업데이트
                 /** DEBUG */
                 System.out.println(name + " : " + Boolean.parseBoolean(status));
+
                 break;
             default:
                 // nickname >> 으로 시작하는 경우
