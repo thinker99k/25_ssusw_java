@@ -14,7 +14,7 @@ class net {
     private PrintWriter out;
     private BufferedReader in;
 
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
 
     net(String host, int port, bridge b) {
         this.host = host;

@@ -16,7 +16,7 @@ class ClientHandler implements Runnable {
     private long last_heartbeat;
     private boolean online;
 
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
 
     // ClientHandler 생성자
     ClientHandler(Socket socket) {
