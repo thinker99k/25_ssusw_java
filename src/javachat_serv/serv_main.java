@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 public class serv_main {
     static ServerSocket listener;
     static AuthServer auth_serv;
-    static final String version = "1.0.4";
+    static final String version = "1.1.1";
 
     public static final Set<PrintWriter> clientWriters =
             ConcurrentHashMap.newKeySet();
