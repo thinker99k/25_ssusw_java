@@ -62,45 +62,48 @@ class net {
     private static final int TOO_MANY = 300;
 
     public int login() {
-        // 1) GUI 로그인 다이얼로그 띄우기
-        if (SwingUtilities.isEventDispatchThread()) {
-            // 이미 EDT라면 그냥 modal dialog 띄우기만 해도 블록됩니다.
-            b.l.setVisible(true);
-        } else {
+        while (true) {
+            // 1) 다이얼로그 생성
+            gui_login dlg = new gui_login(null);
+
+            // 2) EDT 여부에 따라 띄우기
+            if (SwingUtilities.isEventDispatchThread()) {
+                dlg.setVisible(true);
+            } else {
+                try {
+                    SwingUtilities.invokeAndWait(() -> dlg.setVisible(true));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return -1;
+                }
+            }
+
+            // 3) Cancel/X 누르면 종료
+            if (!dlg.isSucceeded()) {
+                System.exit(0);
+            }
+
+            // 4) 서버로 ID/PW 전송
+            String id = dlg.getUsername();
+            String pw = dlg.getPassword();
+            out.println(id + " " + pw);
+
+            // 5) 서버 응답 대기
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+
+            // 6) 결과 읽기
+            int ret;
             try {
-                SwingUtilities.invokeAndWait(() -> b.l.setVisible(true));
-            } catch (Exception e) {
+                ret = Integer.parseInt(in.readLine());
+            } catch (IOException e) {
                 e.printStackTrace();
                 return -1;
             }
-        }
 
-        // 2) 사용자가 Cancel 또는 X 누르면 종료
-        if (!b.l.isSucceeded()) {
-            System.exit(0);
-        }
-
-        // 3) 입력된 ID/PW 가져오기
-        String id = b.l.getUsername();
-        String pw = b.l.getPassword();
-
-        // 4) 서버로 전송
-        out.println(id + " " + pw);
-
-        // 5) 서버 응답 대기
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-
-        int ret;
-        try {
-            ret = Integer.parseInt(in.readLine());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        }
-
-        // 6) 로그인 결과에 따라 메시지 박스 띄우기
-        switch (ret) {
-            case TOO_MANY:
+            // 7) 결과 처리
+            if (ret == LOGIN_OK) {
+                return ret;  // 성공하면 메서드 종료
+            } else if (ret == TOO_MANY) {
                 JOptionPane.showMessageDialog(
                         null,
                         "로그인 불가능, 프로그램을 다시 시작해주세요!",
@@ -108,49 +111,25 @@ class net {
                         JOptionPane.ERROR_MESSAGE
                 );
                 System.exit(0);
-                break;
-            case WRONG_NO:
+            } else {  // WRONG_NO
                 JOptionPane.showMessageDialog(
                         null,
-                        "인증 정보가 틀립니다!",
+                        "인증 정보가 틀립니다! 다시 시도해 주세요.",
                         "로그인 오류",
                         JOptionPane.ERROR_MESSAGE
                 );
-                break; // exec() 루프에서 재시도
-            case LOGIN_OK:
-                // 성공
-                break;
-            default:
-                break;
+                // 루프가 돌면서 동일 dlg를 다시 생성·표시
+            }
         }
-        return ret;
     }
 
+    /**
+     * 한 번만 login() 호출하도록 변경.
+     */
     public void exec() {
-        int response;
-
-        while (true) {
-            response = login();
-
-                if (response == TOO_MANY) {
-                    System.err.println("로그인 불가능, 프로그램을 다시 시작해주세요!");
-                    clean();
-                    System.exit(0);
-                } else {
-                    if (response == LOGIN_OK) {
-                        break;
-                    } else if (response == WRONG_NO){
-                        // 경고창 띄우기
-                        System.err.println("인증 정보가 틀립니다!");
-                    }
-                    else {
-                        ;
-                    }
-                }
-        }
-
-        // 메세지 읽기 쓰레드 시작
-        new Thread(this::recv).start(); // 부득이하게 이름이 겹쳐서 네임스페이스 지정..
+        int response = login();  // 여기선 무조건 LOGIN_OK 반환
+        // 메시지 수신 스레드 시작
+        new Thread(this::recv).start();
     }
 
     public void send(String msg) {
