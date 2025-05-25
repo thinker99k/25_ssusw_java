@@ -13,6 +13,28 @@ public class serv_main {
     public static final Set<PrintWriter> clientWriters =
             ConcurrentHashMap.newKeySet();
 
+    public static final Set<String> clientNames =
+            new HashSet<>();
+
+    // 처음 한번 실행
+    public static void whoAlive() {
+        for (String my_name : clientNames) {
+            broadcast("1 " + my_name + " " + true);
+        }
+    }
+
+    public static void iamAlive(String alive){
+        broadcast("1 " + alive + " " + true);
+    }
+
+    public static void iamIdle(String idle) {
+        broadcast("1 " + idle + " " + false); //
+    }
+
+    public static void iamDead(String dead) {
+        broadcast("1 " + dead + " " + "kill");
+    }
+
     public static void broadcast(String message) {
         for (PrintWriter writer : clientWriters) {
             writer.println(message);
@@ -54,9 +76,9 @@ public class serv_main {
         }
 
         /** 인증서버 시작 */
-        try{
+        try {
             auth_serv = new AuthServer("./src/javachat_serv/db.txt");
-        } catch (IOException e){
+        } catch (IOException e) {
             System.err.println("인증서버 시작 실패 ");
         }
 

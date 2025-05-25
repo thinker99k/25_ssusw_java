@@ -97,7 +97,7 @@ class net {
     public void send_msg(String msg, boolean heartbeat) {
         if (out != null) {
             if (DEBUG) {
-                System.out.println("<- " + msg);
+                System.out.println("<- PAYLOAD " + msg);
             }
 
             if (heartbeat) {
@@ -114,7 +114,7 @@ class net {
 
             while ((line = in.readLine()) != null) {
                 if (DEBUG) {
-                    System.out.println("-> " + line);
+                    System.out.println("PAYLOAD -> " + line);
                 }
 
                 final String msg = line;

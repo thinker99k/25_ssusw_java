@@ -4,8 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.StringTokenizer;
 
-import static javachat_serv.serv_main.auth_serv;
-import static javachat_serv.serv_main.clientWriters;
+import static javachat_serv.serv_main.*;
 
 class ClientHandler implements Runnable {
     private String client_name;
@@ -46,14 +45,14 @@ class ClientHandler implements Runnable {
                 if (System.currentTimeMillis() - last_heartbeat > 2000) { // 딜레이가 길어질 경우
                     if (online) { // 온라인 -> 오프라인
                         online = false;
-                        serv_main.broadcast("1 " + client_name + " " + online);
+                        iamIdle(client_name);
                         System.out.println(client_name + " on -> OFF");
                     }
                     // 오프라인 -> 오프라인 : 아무것도 x
                 } else { // 딜레이가 정상적일 경우
                     if (!online) { // 오프라인 -> 온라인 (두 번째 하트비트 부터)
                         online = true;
-                        serv_main.broadcast("1 " + client_name + " " + online);
+                        iamAlive(client_name);
                         System.out.println(client_name + " off -> ON");
                     }
                     // 온라인 -> 온라인 : 아무것도 x
@@ -140,6 +139,7 @@ class ClientHandler implements Runnable {
         /** 여기서부터는 인증 통과됨, 실질적인 메시지 교환 */
 
         clientWriters.add(out);
+        clientNames.add(client_name);
 
         // 입장 메세지
         serv_main.broadcast(
@@ -153,8 +153,8 @@ class ClientHandler implements Runnable {
 
         String line;
         try {
-            // 다른 유저들에게 나 들어왔다 broadcast
-            serv_main.broadcast("1 " + client_name + " " + online);
+            // 현재 누가 접속해있어요?? (나 포함)
+            whoAlive();
 
             while ((line = in.readLine()) != null) { // \n전까지 모든 것을 읽음
                 if (DEBUG){
@@ -177,12 +177,14 @@ class ClientHandler implements Runnable {
             monitor.interrupt();
 
             // 다른 유저에게 나 나간다고 broadcast
-            serv_main.broadcast("1 " + client_name + " kill");
+            iamDead(client_name);
         } catch (Exception Ignored) {
             // in.readline() 에 대한 예외 처리 안함
         }
 
         clientWriters.remove(out);
+        clientNames.remove(client_name);
+
         try {
             sock.close();
         } catch (IOException e) {
@@ -191,8 +193,9 @@ class ClientHandler implements Runnable {
 
         clean();
 
-        /** 퇴장 메세지 */
-        serv_main.broadcast("** " + client_name + "님이 채팅방을 떠났습니다 **");
+        // 퇴장 메세지
+        serv_main.broadcast(
+                "** " + client_name + "님이 채팅방을 떠났습니다 **");
         System.out.println("** " + client_name + " handler OFF");
     }
 }
