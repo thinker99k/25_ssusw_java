@@ -54,7 +54,6 @@ class bridge {
         // n.login 반환값에 따라 작동
         int code;
 
-
         while (true) {
             l.setVisible(true); // 로그인 창 보이게
 
@@ -83,19 +82,12 @@ class bridge {
     public void onIncoming(String line) {
         String[] tokens = line.split(" ");
         switch (tokens[0]) {
-            case "1": {// heartbeat 응답
-                String name = tokens[1];
-
-                Boolean status = Boolean.valueOf(tokens[2]);
-                c.setUserStatus(name, status);
-
-                //TODO 토큰에 맞춰 gui eastPanel 업데이트
-                /** DEBUG */
-                System.out.println(name + " : " + status);
+            case "1": { // heartbeat 응답
+                System.out.println(line);
+                c.setUserStatus(tokens[1], tokens[2]);
 
                 break;
             }
-
             default:
                 // nickname >> 으로 시작하는 경우
                 c.appendChat(line);

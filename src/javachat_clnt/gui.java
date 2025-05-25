@@ -3,6 +3,7 @@ package javachat_clnt;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Objects;
 
 class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되도록 JFrame 상속
     private static final int SIDE_WIDTH = 200; // 사용자 목록과 placeholder 폭 고정
@@ -108,10 +109,24 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
-    public void setUserStatus(String name, Boolean status) {
-        String updatedStatus = name + " - " + (status ? "Online" : "Offline");
-        boolean found = false;
+    public void setUserStatus(String name, String status) {
+        if(Objects.equals(status, "kill")){
+            for (int i = 0; i < listModel.size(); i++) {
+                String userEntry = listModel.getElementAt(i).trim();
+                String[] parts = userEntry.split(" - ", 2);
 
+                if (parts.length > 0 && parts[0].trim().equals(name)) {
+                    listModel.remove(i);
+                    System.out.println("삭제됨: " + name);
+                    return;
+                }
+            }
+        }
+
+        String updatedStatus = name + " - " +
+                (status.equals("true") ? "Online" : "Offline");
+
+        boolean found = false;
         for (int i = 0; i < listModel.size(); i++) {
             String userEntry = listModel.getElementAt(i).trim();
             String[] parts = userEntry.split(" - ", 2);
@@ -119,12 +134,13 @@ class gui_chat extends JFrame { //클래스 자체가 하나의 윈도우가 되
             if (parts.length > 0 && parts[0].trim().equals(name)) {
                 if (!userEntry.equals(updatedStatus)) {
                     listModel.set(i, updatedStatus);
-                    System.out.println("업데이트됨: " + updatedStatus);
+                    System.out.println(name + " -> " + updatedStatus);
                 }
                 found = true;
                 break;
             }
         }
+
         if (!found) {
             listModel.addElement(updatedStatus);
             System.out.println("추가됨: " + updatedStatus);

@@ -9,7 +9,6 @@ import static javachat_serv.serv_main.clientWriters;
 
 class ClientHandler implements Runnable {
     private String client_name;
-    private static int client_number = 0; //새 클라이언트 생성 시 +1, 감시 쓰레드가 이를 감지하고 클라이언트 별 heartbeat 시그널 전송
     private final Socket sock;
     private BufferedReader in;
     private PrintWriter out;
@@ -43,15 +42,7 @@ class ClientHandler implements Runnable {
 
     private Runnable heartbeat_monitor() {
         return () -> {
-            int current_client_number = client_number;
-
-            while (true) {
-                //새 클라이언트 접속(+) 혹은 다른 클라이언트 접속 종료(-)시
-                if (current_client_number != client_number) {
-                    current_client_number = client_number;
-                    serv_main.broadcast("1 " + client_name + " " + online);
-                }
-
+            while (!Thread.currentThread().isInterrupted()) {
                 if (System.currentTimeMillis() - last_heartbeat > 2000) { // 딜레이가 길어질 경우
                     if (online) { // 온라인 -> 오프라인
                         online = false;
@@ -70,8 +61,10 @@ class ClientHandler implements Runnable {
 
                 try {
                     Thread.sleep(1000);
-                } catch (InterruptedException Ignored) {
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     System.err.println("heartbeat interrupted");
+                    break;
                 }
             }
         };
@@ -147,7 +140,6 @@ class ClientHandler implements Runnable {
         /** 여기서부터는 인증 통과됨, 실질적인 메시지 교환 */
 
         clientWriters.add(out);
-        client_number++;
 
         // 입장 메세지
         serv_main.broadcast(
@@ -156,13 +148,14 @@ class ClientHandler implements Runnable {
 
         online = true;
 
-
         Thread monitor = new Thread(heartbeat_monitor());
         monitor.start();
 
         String line;
-        System.out.println("going loop!!");
         try {
+            // 다른 유저들에게 나 들어왔다 broadcast
+            serv_main.broadcast("1 " + client_name + " " + online);
+
             while ((line = in.readLine()) != null) { // \n전까지 모든 것을 읽음
                 if (DEBUG){
                     System.out.println("<- : " + line);
@@ -179,6 +172,12 @@ class ClientHandler implements Runnable {
 
                 st = null; // 빠른 가비지 콜렉션을 위해
             }
+
+            // 연결 끊겼는데도 해당 client가 offline이라 보내면 안되니 바로 heartbeat stop
+            monitor.interrupt();
+
+            // 다른 유저에게 나 나간다고 broadcast
+            serv_main.broadcast("1 " + client_name + " kill");
         } catch (Exception Ignored) {
             // in.readline() 에 대한 예외 처리 안함
         }
@@ -186,7 +185,6 @@ class ClientHandler implements Runnable {
         clientWriters.remove(out);
         try {
             sock.close();
-            client_number--; //접속 종료 시
         } catch (IOException e) {
             ; // 소켓 닫을때 에러처리 무시
         }
