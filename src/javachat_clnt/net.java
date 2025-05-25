@@ -9,18 +9,14 @@ class net {
 
     private final String host;
     private final int port;
-    private final String name;
-    private final String pass;
 
     private Socket sock;
     private PrintWriter out;
     private BufferedReader in;
 
-    net(String host, int port, String name, String pass, bridge b) {
+    net(String host, int port, bridge b) {
         this.host = host;
         this.port = port;
-        this.name = name;
-        this.pass = pass;
         this.b = b;
     }
 
@@ -66,28 +62,67 @@ class net {
     private static final int TOO_MANY = 300;
 
     public int login() {
-        // TODO : gui 구현!!!
-        // 일단 cli상에서는 작동되게 해놨음
-
-        out.println(name + " " + pass);
-
-        // in은 별도의 Thread이기에, 패킷 오고가는 1초동안 sleep
-        try {
-            Thread.sleep(1000); //1초 대기
-        } catch (InterruptedException e) {
-            ; // 무시
+        // 1) GUI 로그인 다이얼로그 띄우기
+        if (SwingUtilities.isEventDispatchThread()) {
+            // 이미 EDT라면 그냥 modal dialog 띄우기만 해도 블록됩니다.
+            b.l.setVisible(true);
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(() -> b.l.setVisible(true));
+            } catch (Exception e) {
+                e.printStackTrace();
+                return -1;
+            }
         }
 
-        int ret = 0;
+        // 2) 사용자가 Cancel 또는 X 누르면 종료
+        if (!b.l.isSucceeded()) {
+            System.exit(0);
+        }
 
+        // 3) 입력된 ID/PW 가져오기
+        String id = b.l.getUsername();
+        String pw = b.l.getPassword();
+
+        // 4) 서버로 전송
+        out.println(id + " " + pw);
+
+        // 5) 서버 응답 대기
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+
+        int ret;
         try {
             ret = Integer.parseInt(in.readLine());
-        } catch (IOException e) { // 서버와 연결 끊김
-            System.err.println("서버와 연결 종료");
-            clean();
-            System.exit(1);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return -1;
         }
 
+        // 6) 로그인 결과에 따라 메시지 박스 띄우기
+        switch (ret) {
+            case TOO_MANY:
+                JOptionPane.showMessageDialog(
+                        null,
+                        "로그인 불가능, 프로그램을 다시 시작해주세요!",
+                        "로그인 오류",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                System.exit(0);
+                break;
+            case WRONG_NO:
+                JOptionPane.showMessageDialog(
+                        null,
+                        "인증 정보가 틀립니다!",
+                        "로그인 오류",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                break; // exec() 루프에서 재시도
+            case LOGIN_OK:
+                // 성공
+                break;
+            default:
+                break;
+        }
         return ret;
     }
 
@@ -97,21 +132,21 @@ class net {
         while (true) {
             response = login();
 
-            if (response == TOO_MANY) {
-                System.err.println("로그인 불가능, 프로그램을 다시 시작해주세요!");
-                clean();
-                System.exit(0);
-            } else {
-                if (response == LOGIN_OK) {
-                    break;
-                } else if (response == WRONG_NO){
-                    // 경고창 띄우기
-                    System.err.println("인증 정보가 틀립니다!");
+                if (response == TOO_MANY) {
+                    System.err.println("로그인 불가능, 프로그램을 다시 시작해주세요!");
+                    clean();
+                    System.exit(0);
+                } else {
+                    if (response == LOGIN_OK) {
+                        break;
+                    } else if (response == WRONG_NO){
+                        // 경고창 띄우기
+                        System.err.println("인증 정보가 틀립니다!");
+                    }
+                    else {
+                        ;
+                    }
                 }
-                else {
-                    ;
-                }
-            }
         }
 
         // 메세지 읽기 쓰레드 시작

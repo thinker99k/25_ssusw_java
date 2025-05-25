@@ -8,7 +8,7 @@ class bridge{
     bridge(String host, int port, String name, String pass) {
         c = new gui_chat();
         l = new gui_login(c);
-        n = new net(host, port, name, pass, this);
+        n = new net(host, port, this);
     }
 
     public void exec(){

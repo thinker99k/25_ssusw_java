@@ -100,6 +100,7 @@ class gui_login extends JDialog {
     private final JPasswordField pwField   = new JPasswordField();
     private boolean              succeeded;
     private String               username;
+    private String               password;
 
     public gui_login(Frame owner) {
         super(owner, "Login", true);
@@ -190,6 +191,7 @@ class gui_login extends JDialog {
         if (!id.isEmpty() && !pw.isEmpty()) {
             succeeded = true;
             username  = id;
+            password = pw;
             dispose();
         } else {
             JOptionPane.showMessageDialog(
@@ -203,7 +205,8 @@ class gui_login extends JDialog {
     }
 
     public boolean isSucceeded() { return succeeded; }
-    public String  getUsername()  { return username;  }
+    public String  getUsername() { return username;  }
+    public String  getPassword() { return password;  }
 
     /**
      * 왼쪽 배너: idField/pwField 위치에 맞춰 JAVACHAT/CLIENT 그리기
