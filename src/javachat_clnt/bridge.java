@@ -51,7 +51,7 @@ class bridge{
 
                 //TODO 토큰에 맞춰 유저 상태 리스트 업데이트
                 /** DEBUG */
-                System.out.println(name + " : " + Boolean.parseBoolean(status));
+                System.out.println(name + " : " + status);
 
                 break;
             default:
