@@ -32,19 +32,20 @@ class ClientHandler implements Runnable {
         }
     }
 
-    private Runnable heartbeat_monitor(){
+    private Runnable heartbeat_monitor() {
         return () -> {
             try {
-                serv_main.broadcast("1 " + client_name + " " + online);
+                serv_main.broadcast("1 " + client_name + " " + online); // 입장시에 한번!
+
                 while (!Thread.currentThread().isInterrupted()) {
                     long now = System.currentTimeMillis();
-                    if (now - heartbeat > 2000) {
-                        if (online = true){
+                    if (now - heartbeat > 2000) { // 딜레이가 길어질 경우
+                        if (online == true) {
                             online = false;
                             serv_main.broadcast("1 " + client_name + " " + online);
                         }
-                    } else {
-                        if (online = false) {
+                    } else { // 딜레이가 정상적일 경우
+                        if (online == false) {
                             online = true;
                             serv_main.broadcast("1 " + client_name + " " + online);
                         }
@@ -132,7 +133,7 @@ class ClientHandler implements Runnable {
                 "** " + client_name + "님이 채팅방에 들어오셨습니다 **");
         heartbeat = System.currentTimeMillis();
         online = true;
-        Thread monitor= new Thread(heartbeat_monitor());
+        Thread monitor = new Thread(heartbeat_monitor());
         monitor.start();
         String line;
         try {

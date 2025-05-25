@@ -9,7 +9,6 @@ public class heartbeat implements Runnable{
         this.status = true;
     }
     public void run(){
-
         while (true){
             try {
                 clnt_main.b.n.send("1 " + this.status);

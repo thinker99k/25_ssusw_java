@@ -4,11 +4,13 @@ class bridge{
     public final gui_chat c;
     public final gui_login l;
     public final net n;
+    public final heartbeat h;
 
     bridge(String host, int port, String name, String pass) {
         c = new gui_chat();
         l = new gui_login(c);
         n = new net(host, port, name, pass, this);
+        h = new heartbeat();
     }
 
     public void exec(){
@@ -17,8 +19,8 @@ class bridge{
             System.exit(1);
         } /** UI 테스트시 주석처리 하고 실행 */
 
-        n.init();
-        n.exec();
+        n.init(); // server에서 accept
+        n.exec(); // 이 이후로 메세지 전달
 
         c.initComponents();
 
@@ -32,6 +34,9 @@ class bridge{
 
         c.setVisible(true);
 
+        Thread hb_thread = new Thread(h);
+        hb_thread.start();
+
         //l.setVisible(true);
     }
 
@@ -42,8 +47,11 @@ class bridge{
                 String name = tokens[1];
                 String status = tokens[2];
                 //TODO 토큰에 맞춰 유저 상태 리스트 업데이트
+                /** DEBUG */
+                System.out.println(name + " : " + Boolean.parseBoolean(status));
                 break;
             default:
+                // nickname >> 으로 시작하는 경우
                 c.appendChat(line);
         }
     }
