@@ -161,16 +161,14 @@ class ClientHandler implements Runnable {
                     System.out.println("<- : " + line);
                 }
 
-                /// 오버헤드 매우 심한데 다른 대안이....
-                StringTokenizer st = new StringTokenizer(line);
+                String[] token = line.split(" ", 2);
 
-                if (Integer.parseInt(st.nextToken()) == 0) { // 일반 메세지
-                    serv_main.broadcast(client_name + " >> " + st.nextToken());
+                if (Integer.parseInt(token[0]) == 0) { // 일반 메세지
+                    serv_main.broadcast(client_name + " >> " + token[1]);
                 } else { // heartbeat
                     last_heartbeat = System.currentTimeMillis();
                 }
 
-                st = null; // 빠른 가비지 콜렉션을 위해
             }
 
             // 연결 끊겼는데도 해당 client가 offline이라 보내면 안되니 바로 heartbeat stop
